@@ -15,8 +15,12 @@
  */
 package org.apache.ibatis.reflection.wrapper;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 
+import com.sun.swing.internal.plaf.metal.resources.metal;
+import org.apache.ibatis.executor.resultset.FieldMappingHandler;
 import org.apache.ibatis.reflection.ExceptionUtil;
 import org.apache.ibatis.reflection.MetaClass;
 import org.apache.ibatis.reflection.MetaObject;
@@ -33,14 +37,29 @@ public class BeanWrapper extends BaseWrapper {
 
   private Object object;
   private MetaClass metaClass;
+  private Method fieldMappingMethod;
 
   public BeanWrapper(MetaObject metaObject, Object object) {
     super(metaObject);
     this.object = object;
     this.metaClass = MetaClass.forClass(object.getClass());
+    this.fieldMappingMethod = findFieldMappingMethod(object);
   }
 
-  @Override
+  private Method findFieldMappingMethod(Object object) {
+    Method[] methods = object.getClass().getMethods();
+    for (Method method: methods) {
+       if (null != method.getAnnotation(FieldMappingHandler.class)) {
+           Class[] params = method.getParameterTypes();
+           if (params.length == 1 && params[0] == String.class) {
+                return method;
+           }
+       }
+    }
+   return null;
+  }
+
+    @Override
   public Object get(PropertyTokenizer prop) {
     if (prop.getIndex() != null) {
       Object collection = resolveCollection(prop, object);
@@ -62,7 +81,15 @@ public class BeanWrapper extends BaseWrapper {
 
   @Override
   public String findProperty(String name, boolean useCamelCaseMapping) {
-    return metaClass.findProperty(name, useCamelCaseMapping);
+    if (null != fieldMappingMethod) {
+        try {
+           return (String)fieldMappingMethod.invoke(this.object, name);
+        } catch (ReflectiveOperationException e) {
+           throw new ReflectionException("Cannot find property corresponding to col:" + name + ". Cause:" + e.toString(), e);
+        }
+    } else {
+        return metaClass.findProperty(name, useCamelCaseMapping);
+    }
   }
 
   @Override

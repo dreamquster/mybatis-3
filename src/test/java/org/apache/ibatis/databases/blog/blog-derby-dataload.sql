@@ -56,3 +56,7 @@ INSERT INTO node (id, parent_id) VALUES (5,2);
 INSERT INTO node (id, parent_id) VALUES (6,3);
 INSERT INTO node (id, parent_id) VALUES (7,3);
 
+
+INSERT INTO reader (I_USER_ID, READERname) VALUES (1, 'Karl Max');
+INSERT INTO reader (I_USER_ID, READERname) VALUES (2, 'Mark Anddy');
+
